@@ -6,8 +6,8 @@ Another emulator of chip8 written in rust, only to learn something about rust an
 
 ## TODO
 
-- [ ] Read game files.
-- [ ] Create the memory block.
+- [X] Read game files.
+- [X] Create the memory block.
 - [ ] Create the registers.
 - [ ] Decode instructions.
 - [ ] Execute instructions.
