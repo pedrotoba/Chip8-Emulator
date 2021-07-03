@@ -18,10 +18,21 @@ impl Memory
         }
     }
 
+    pub fn read_addr(&self, addr : u16) -> u8
+    {
+        self.mem[addr as usize]
+    }
+
+    pub fn write_addr(&mut self, addr : u16, value : u8)
+    {
+        self.mem[0x200 + addr as usize] = value;
+    }
+
     pub fn print(&self)
     {
         for i in 0..self.mem.len() {
-            print!("{} ", self.mem[i]);
+            print!("{:#X} ", self.mem[i]);
         }
+        println!();
     }
 }
