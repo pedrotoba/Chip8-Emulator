@@ -41,15 +41,20 @@ fn main() -> io::Result<()> {
 
         let nnn = instruction & 0x0FFF;
         let n = instruction & 0x000F;
-        let x = instruction & 0x0F00;
+        let x = (instruction & 0x0F00) >> 8;
         let y = instruction & 0x00F0;
         let kk = instruction & 0x00FF;
 
-        // println!("nnn: {:#X}, n: {:#X}, x: {:#X}, y: {:#X}, kk: {:#X}", nnn, n, x, y, kk);
+        println!("nnn: {:#X}, n: {:#X}, x: {:#X}, y: {:#X}, kk: {:#X}", nnn, n, x, y, kk);
         match instruction & 0xF000
         {
             0x1000 => {
                 println!("-> [+] JP to {:#X}",nnn);
+                pc = nnn;
+            }
+            0x6000 => {
+                println!("-> [+] LD V{:?}, {:?}",x,kk);
+                pc+=2;
             }
             _ => panic!("[X] Instruction not found: {:#X}", instruction)
             
