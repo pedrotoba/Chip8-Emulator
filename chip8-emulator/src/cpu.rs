@@ -141,22 +141,66 @@ impl Cpu
                 0x7000 => {
                     println!("-> ADD V{:?}, {:?}",x,kk); // Set Vx = Vx + kk.
 
-                    self.vx[x as usize] = self.vx[x as usize].wrapping_add(kk as u8); // TODO: aqui algo raro
+                    self.vx[x as usize] = self.vx[x as usize].wrapping_add(kk as u8);
                     self.pc+=2;
                 }
                 0x8000 => {
                     match n
                     {
                         0x0 => {
-                            println!("-> LD V{:?}, V{:?}",self.vx[x as usize], self.vx[y as usize]);
+                            println!("-> LD V{:?}, V{:?}",self.vx[x as usize], self.vx[y as usize]); // Set Vx = Vy.
                             self.vx[x as usize] = self.vx[y as usize];
                         }
+                        0x1 => {
+                            println!("-> OR V{:?}, V{:?}",self.vx[x as usize], self.vx[y as usize]); // Set Vx = Vx OR Vy.
+                            self.vx[x as usize] |= self.vx[y as usize];
+                        }
+                        0x2 => {
+                            println!("-> AND V{:?}, V{:?}",self.vx[x as usize], self.vx[y as usize]); // Set Vx = Vx AND Vy.
+                            self.vx[x as usize] &= self.vx[y as usize];
+                        }
+                        0x3 => {
+                            println!("-> XOR V{:?}, V{:?}",self.vx[x as usize], self.vx[y as usize]); // Set Vx = Vx XOR Vy.
+                            self.vx[x as usize] ^= self.vx[y as usize];
+                        }
+                        0x4 => {
+                            println!("-> ADD V{:?}, V{:?}",self.vx[x as usize], self.vx[y as usize]); // Set Vx = Vx + Vy, set VF = carry.
+                            let sum : u16 = self.vx[x as usize] as u16 + self.vx[y as usize] as u16;
+                            self.vx[x as usize] = sum as u8;
+                            if sum > 0xFF
+                            {
+                                self.vx[0xF] = 1;
+                            }
+                        }
+                        0x5 => {
+                            println!("-> SUB V{:?}, V{:?}",self.vx[x as usize], self.vx[y as usize]); // Set Vx = Vx - Vy, set VF = NOT borrow.
+
+                            self.vx[x as usize] = self.vx[x as usize].wrapping_sub(self.vx[y as usize] as u8);
+                            if self.vx[x as usize] > self.vx[y as usize]
+                            {
+                                self.vx[0xF] = 1;
+                            }
+                            else
+                            {
+                                self.vx[0xF] = 0;
+                            }
+                        }
+                        0x6 => {
+                            println!("-> SHR V{:?}, 1",self.vx[x as usize]); // Set Vx = Vx SHR 1.
+                            // If the least-significant bit of Vx is 1, then VF is set to 1, otherwise 0. Then Vx is divided by 2.
+                            self.vx[0xF] = (self.vx[x as usize] & 0b00000001) >> 7; // Compare the last bit and insert into vf
+                            self.vx[x as usize] >>= 1; // Dividing by two shifting one bit to the right
+                        }
+                        0xE => {
+                            println!("-> SHL V{:?}, 1",self.vx[x as usize]); // Set Vx = Vx SHL 1
+                            // If the most-significant bit of Vx is 1, then VF is set to 1, otherwise to 0. Then Vx is multiplied by 2.
+                            self.vx[0xF] = (self.vx[x as usize] & 0b10000000) >> 7; // Compare the first bit and insert into vf
+                            self.vx[x as usize] <<= 1; // Multiply by two shifting one bit to the left
+                        }
                         _ => {
-                            panic!("[X] Instruction F not found: {:#X}", instruction);
+                            panic!("[X] Instruction 8XY[] not found: {:#X}", instruction);
                         }
                     }
-                    
-                    self.i = nnn;
                     self.pc+=2;
                 }
                 0x9000 => {
@@ -197,16 +241,23 @@ impl Cpu
                     match kk
                     {
                         0x1E => {
-                            println!("-> ADD I{:?}, V{:?}",self.i,self.vx[x as usize]);
+                            println!("-> ADD I-{:?}, V{:?}",self.i,self.vx[x as usize]);
                             self.i += self.vx[x as usize] as u16;
+                            self.pc+=2;
+                        }
+                        0x55 => {
+                            println!("-> LD I-{:?}, V{:?}",self.i,self.vx[x as usize]); // Store registers V0 through Vx in memory starting at location I.
+                            // Loop throught all the registers from 0 to x
+                            for i in 0..x 
+                            {
+                                self.ram.write_addr(self.i+i, self.vx[i as usize]);
+                            }
+                            self.pc+=2;
                         }
                         _ => {
                             panic!("[X] Instruction F not found: {:#X}", instruction);
                         }
                     }
-                    
-                    self.i = nnn;
-                    self.pc+=2;
                 }
                 _ => panic!("[X] Instruction not found: {:#X}", instruction)
                 

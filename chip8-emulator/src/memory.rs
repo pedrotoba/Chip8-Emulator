@@ -25,7 +25,7 @@ impl Memory
 
     pub fn write_addr(&mut self, addr : u16, value : u8)
     {
-        self.mem[0x200 + addr as usize] = value;
+        self.mem[addr as usize] = value;
     }
 
     pub fn print(&self)
