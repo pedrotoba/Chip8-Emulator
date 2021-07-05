@@ -245,12 +245,31 @@ impl Cpu
                             self.i += self.vx[x as usize] as u16;
                             self.pc+=2;
                         }
+                        0x33 => {
+                            println!("-> LD B{:?}, V{:?}",self.i,self.vx[x as usize]); // Store BCD representation of Vx in memory locations I, I+1, and I+2.
+                            
+                            let xvalue = self.vx[x as usize];
+                            self.ram.write_addr(self.i, xvalue / 100);
+                            self.ram.write_addr(self.i+1, (xvalue%100) / 10);
+                            self.ram.write_addr(self.i+2, xvalue%10);
+
+                            self.pc+=2;
+                        }
                         0x55 => {
                             println!("-> LD I-{:?}, V{:?}",self.i,self.vx[x as usize]); // Store registers V0 through Vx in memory starting at location I.
                             // Loop throught all the registers from 0 to x
                             for i in 0..x 
                             {
                                 self.ram.write_addr(self.i+i, self.vx[i as usize]);
+                            }
+                            self.pc+=2;
+                        }
+                        0x65 => {
+                            println!("-> LD V{:?}, I-{:?}",self.vx[x as usize],self.i); // Read registers V0 through Vx from memory starting at location I.
+                            // Loop throught all the registers from 0 to x
+                            for i in 0..x 
+                            {
+                                self.vx[i as usize] = self.ram.read_addr(self.i+i);
                             }
                             self.pc+=2;
                         }

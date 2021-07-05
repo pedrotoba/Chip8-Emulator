@@ -10,7 +10,9 @@ Another emulator of chip8 written in rust, only to learn something about rust an
 - [X] Create the memory block.
 - [X] Create the registers.
 - [X] Decode instructions.
-- [ ] Execute instructions.
+- [X] Execute instructions.
+- [X] Implement the stack.
+- [ ] Find a rust library to open a window and draw graphics.
 - ...
 
 
