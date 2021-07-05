@@ -11,7 +11,8 @@ pub struct Cpu
     pc : u16,
     sp : u8,
     i : u16,
-    ram : Memory
+    ram : Memory,
+    stack: Vec<u16>
 }
 
 impl Cpu
@@ -24,7 +25,8 @@ impl Cpu
             pc : 0x200,
             sp : 0x00,
             i : 0x00,
-            ram : Memory::new()
+            ram : Memory::new(),
+            stack : Vec::new()
         }
     }
 
@@ -36,14 +38,15 @@ impl Cpu
 
         self.ram.loadrom(romdata);
 
-        // self.ram.print();
+        //self.ram.print();
     }
 
     pub fn execute_rom(&mut self)
     {
         println!("*** Registers : {:?}",self.vx);
         println!("*** PC : {:#X}",self.pc);
-
+       // println!("0x247 {:#X} 0x248 {:#X}", self.ram.read_addr(0x247),self.ram.read_addr(0x248));
+        //panic!();
         loop
         {
             // With that, start to read the memory and decode the instructions
@@ -67,8 +70,34 @@ impl Cpu
 
             match instruction & 0xF000
             {
+                0x0 => {
+                    match kk
+                    {
+                        0xEE => {
+                            println!("-> RET"); // Return from subroutine
+                            // Get the last element in stack
+                            let pop  = match self.stack.pop() {
+                                Some(val) => self.pc = val,
+                                None => panic!("[X] Stack empty.")
+                            };
+
+                            
+                        }
+                        0xE0 => {
+                            println!("-> CLS"); // Clear the screen
+                        }
+                        _ => {panic!("[X] Error in instruction {:#X}", instruction);}
+                    }
+                }
+                
                 0x1000 => {
                     println!("-> JP to {:#X}",nnn); // Jump to nnn
+                    self.pc = nnn;
+                }
+                0x2000 => {
+                    println!("-> CALL {:#X}",nnn); // Call subroutine at nnn.
+                    // The interpreter increments the stack pointer, then puts the current PC on the top of the stack. The PC is then set to nnn.
+                    self.stack.push(self.pc + 2);
                     self.pc = nnn;
                 }
                 0x3000 => {
@@ -105,11 +134,48 @@ impl Cpu
                     }
                 }
                 0x6000 => {
-                    println!("-> LD V{:?}, {:?}",x,kk);
+                    println!("-> LD V{:?}, {:?}",x,kk); // Set Vx = kk.
                     self.vx[x as usize] = kk as u8;
                     self.pc+=2;
                 }
+                0x7000 => {
+                    println!("-> ADD V{:?}, {:?}",x,kk); // Set Vx = Vx + kk.
+
+                    self.vx[x as usize] = self.vx[x as usize].wrapping_add(kk as u8); // TODO: aqui algo raro
+                    self.pc+=2;
+                }
+                0x8000 => {
+                    match n
+                    {
+                        0x0 => {
+                            println!("-> LD V{:?}, V{:?}",self.vx[x as usize], self.vx[y as usize]);
+                            self.vx[x as usize] = self.vx[y as usize];
+                        }
+                        _ => {
+                            panic!("[X] Instruction F not found: {:#X}", instruction);
+                        }
+                    }
+                    
+                    self.i = nnn;
+                    self.pc+=2;
+                }
+                0x9000 => {
+                    println!("-> SNE V{:?}, V{:?}",x,y); // Skip next instruction if Vx != Vy.
+                    if self.vx[x as usize] != self.vx[y as usize]
+                    {
+                        self.pc += 4;
+                    }
+                    else
+                    {
+                        self.pc += 2;
+                    }
+                }
                 0xA000 => {
+                    println!("-> LD I, {:?}",nnn);
+                    self.i = nnn;
+                    self.pc+=2;
+                }
+                0xE000 => {
                     println!("-> LD I, {:?}",nnn);
                     self.i = nnn;
                     self.pc+=2;
@@ -127,13 +193,32 @@ impl Cpu
                 */
                     self.pc+=2;
                 }
+                0xF000 => {
+                    match kk
+                    {
+                        0x1E => {
+                            println!("-> ADD I{:?}, V{:?}",self.i,self.vx[x as usize]);
+                            self.i += self.vx[x as usize] as u16;
+                        }
+                        _ => {
+                            panic!("[X] Instruction F not found: {:#X}", instruction);
+                        }
+                    }
+                    
+                    self.i = nnn;
+                    self.pc+=2;
+                }
                 _ => panic!("[X] Instruction not found: {:#X}", instruction)
                 
                 
             }
 
             println!("\t*** Registers Vx: {:?} , I: {:?}",self.vx, self.i);
+            println!("\t*** Stack: {:?}",self.stack);
             println!("\t*** PC : {:#X}",self.pc);
+
+           //let mut line = String::new();
+          // let b1 = std::io::stdin().read_line(&mut line).unwrap();
             
 
         }
